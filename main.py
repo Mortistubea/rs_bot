@@ -159,37 +159,36 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Bot is running!"
+    return "Bot ishlayapti!"
 
 def run_flask():
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
 
-# ======================= INTERNAL PING =======================
+# =================== INTERNAL PING ===================
 async def keep_alive_ping():
-    url = os.environ.get("RENDER_EXTERNAL_URL", "https://rs-bot-6b9r.onrender.com")
+    url = os.environ.get("RENDER_EXTERNAL_URL", "http://127.0.0.1:5000")
     while True:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(url) as resp:
-                    print(f"Ping yuborildi, status: {resp.status}")
+                    print(f"Ping: {resp.status}")
         except Exception as e:
             print(f"Ping xatoligi: {e}")
         await asyncio.sleep(600)  # har 10 daqiqa
 
-# ======================= BOT START =======================
+# =================== BOT START ===================
 async def start_bot():
-    asyncio.create_task(keep_alive_ping())  # Pingni ishga tushirish
-    await executor.start_polling(dp, skip_updates=True)
+    asyncio.create_task(keep_alive_ping())  # pingni ishga tushirish
+    await dp.start_polling(skip_updates=True)
 
-def run_bot():
-    asyncio.run(start_bot())
-
-# ======================= MAIN =======================
-if __name__ == '__main__':
-    # Flask server thread
-    flask_thread = threading.Thread(target=run_flask, daemon=True)
+# =================== MAIN ===================
+if __name__ == "__main__":
+    # Flask server
+    flask_thread = threading.Thread(target=run_flask)
     flask_thread.start()
     
-    # Aiogram bot
-    run_bot()
+    # Aiogram bot (allaqachon mavjud loop ichida)
+    loop = asyncio.get_event_loop()
+    loop.create_task(start_bot())
+    loop.run_forever()
