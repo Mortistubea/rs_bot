@@ -180,7 +180,7 @@ async def keep_alive_ping():
 # =================== BOT START ===================
 async def start_bot():
     asyncio.create_task(keep_alive_ping())  # pingni ishga tushirish
-    await dp.start_polling(skip_updates=True)
+    executor.start_polling(dp, skip_updates=True)
 
 # =================== MAIN ===================
 if __name__ == "__main__":
