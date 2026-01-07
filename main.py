@@ -611,4 +611,7 @@ if __name__ == "__main__":
     app.router.add_get('/sheet', sheet_info)
     app.router.add_post(WEBHOOK_PATH, lambda request: executor.webhook_request_handler(dp, request))
     
+    # TUZATILGAN: executor.start_polling O'RNIGA web.run_app ishlatamiz
+    # Web serverni ishga tushirish
+    web.run_app(app, host=WEBAPP_HOST, port=WEBAPP_PORT)
     # Bot ishga tushirish
