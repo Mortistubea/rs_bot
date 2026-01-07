@@ -3,7 +3,9 @@ import asyncio
 import os
 import json
 from datetime import datetime
-
+# main.py faylining eng boshiga (importlardan keyin) qo'shing:
+from aiogram import Bot
+from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from aiogram import Bot, Dispatcher, types
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -654,17 +656,40 @@ async def root_handler(request):
     )
 
 # =================== ASYNC MAIN FUNKSIYASI ===================
+# =================== ASYNC MAIN FUNKSIYASI ===================
 async def main():
     """Asosiy ishga tushirish funksiyasi"""
     logging.info("🤖 Bot ishga tushmoqda (Webhook + Keep-Alive rejimida)...")
     logging.info(f"📡 Webhook URL: {WEBHOOK_URL}")
     logging.info(f"🌐 Web server: {WEBAPP_HOST}:{WEBAPP_PORT}")
     
-    # Botni sozlash
-    await bot.delete_webhook(drop_pending_updates=True)
-    await asyncio.sleep(1)
-    await bot.set_webhook(WEBHOOK_URL)
-    logging.info(f"✅ Webhook o'rnatildi: {WEBHOOK_URL}")
+    # BOT INSTANCE ni GLOBAL qilish - BU ASOSIY O'ZGARISH
+    Bot.set_current(bot)
+    dp.middleware.setup(LoggingMiddleware())
+    
+    try:
+        # Avval webhook ni o'chirish
+        await bot.delete_webhook(drop_pending_updates=True)
+        logging.info("✅ Eski webhook o'chirildi")
+        await asyncio.sleep(2)
+        
+        # Yangi webhook o'rnatish
+        await bot.set_webhook(WEBHOOK_URL)
+        logging.info(f"✅ Yangi webhook o'rnatildi: {WEBHOOK_URL}")
+        
+        # Webhook ma'lumotlarini tekshirish
+        webhook_info = await bot.get_webhook_info()
+        logging.info(f"🔍 Webhook URL (tekshirish): {webhook_info.url}")
+        logging.info(f"🔍 Pending updates: {webhook_info.pending_update_count}")
+        
+        # Agar webhook noto'g'ri bo'lsa
+        if webhook_info.url != WEBHOOK_URL:
+            logging.error(f"❌ Webhook URL noto'g'ri! Kutilgan: {WEBHOOK_URL}, Holatda: {webhook_info.url}")
+            return
+        
+    except Exception as e:
+        logging.error(f"❌ Webhook o'rnatishda xato: {e}")
+        return
     
     # Maintainer task ni ishga tushirish
     asyncio.create_task(bot_maintainer())
@@ -680,8 +705,9 @@ async def main():
     app.router.add_get('/health', health_check)
     app.router.add_get('/sheet', sheet_info)
     
-    # TUZATILGAN WEBHOOK HANDLER - bu asosiy o'zgartirish
+    # TUZATILGAN WEBHOOK HANDLER
     app.router.add_post(WEBHOOK_PATH, handle_webhook)
+    logging.info(f"✅ Webhook handler qo'shildi: {WEBHOOK_PATH}")
     
     # Web serverni ishga tushirish
     runner = web.AppRunner(app)
@@ -695,9 +721,10 @@ async def main():
     if not gs_manager.connected:
         logging.warning("⚠️ Google Sheets ga ulanmagan! Ma'lumotlar faqat Telegramda saqlanadi.")
     
+    logging.info("✅ Bot to'liq ishga tushdi va xabarlarni kutmoqda...")
+    
     # Cheksiz kutish
     await asyncio.Event().wait()
-
 # =================== ENTRY POINT ===================
 if __name__ == "__main__":
     try:
